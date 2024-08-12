@@ -2,8 +2,8 @@
 #include <HTTPClient.h>
 
 // Replace with your network credentials
-const char* ssid = "VISHAL";
-const char* password = "9971978446@2";
+const char* ssid = "You wifi name";
+const char* password = "Your wifi password";
 
 // URL to check
 const char* url = "https://vishalvishwakarma.co.in/esp32-status.html";
