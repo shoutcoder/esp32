@@ -1,0 +1,95 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// Replace with your network credentials
+const char* ssid = "VISHAL";
+const char* password = "9971978446@2";
+
+// URL to check
+const char* url = "https://vishalvishwakarma.co.in/esp32-status.html";
+
+// Pin numbers for LEDs and Speaker
+const int redLED = 4;  // Red LED
+const int speakerPin = 2; // Speaker (same pin for beep)
+
+// Variables for beeping control
+bool shouldBeep = false;
+unsigned long lastHttpRequestTime = 0;
+const int requestInterval = 5000; // HTTP request interval in milliseconds
+
+void setup() {
+  // Start the Serial communication
+  Serial.begin(115200);
+
+  // Start connecting to Wi-Fi
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+
+  // Attempt to connect for 10 seconds
+  unsigned long startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+    delay(2000);
+    Serial.print("Attempting to connect... ");
+  }
+
+  // Check if connected
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("Connected to Wi-Fi.");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+
+    // Initialize LED pins
+    pinMode(redLED, OUTPUT);
+    pinMode(speakerPin, OUTPUT);
+  } else {
+    Serial.println("");
+    Serial.println("Failed to connect to Wi-Fi.");
+  }
+}
+
+void loop() {
+  unsigned long currentTime = millis();
+
+  // Perform the HTTP request every 5 seconds
+  if (currentTime - lastHttpRequestTime >= requestInterval) {
+    lastHttpRequestTime = currentTime;
+
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(url); // HTTP
+
+      int httpCode = http.GET(); // Make the request
+
+      if (httpCode > 0) { // Check for HTTP code
+        String payload = http.getString();
+        if (payload == "0") {
+          Serial.println("Beeping...");
+          shouldBeep = true;  // Start beeping
+        } else if (payload == "1") {
+          Serial.println("Beeping Stop");
+          shouldBeep = false; // Stop beeping
+          digitalWrite(speakerPin, LOW); // Ensure speaker is off
+        } else {
+          Serial.println("Unexpected response.");
+        }
+      } else {
+        Serial.println("HTTP request failed.");
+      }
+
+      http.end(); // Free resources
+    } else {
+      Serial.println("Wi-Fi lost. Trying to reconnect...");
+      WiFi.begin(ssid, password);
+    }
+  }
+
+  // Beep if the flag is set
+  if (shouldBeep) {
+    digitalWrite(speakerPin, HIGH);
+    delay(1);  // Adjust to control the beep frequency
+    digitalWrite(speakerPin, LOW);
+    delay(1);  // Adjust to control the beep frequency
+  }
+}
